@@ -348,18 +348,24 @@
       ctx.save();
       ctx.translate(b.x + b.size / 2, b.y + b.size / 2);
       ctx.rotate(b.rot);
-      ctx.font = b.size + 'px serif';
+      ctx.font = b.size + 'px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(0,0,0,0.35)';
+      ctx.shadowBlur = 6;
       ctx.fillText('🍞', 0, 0);
       ctx.restore();
     });
 
     // player (basket)
-    ctx.font = '46px serif';
+    ctx.save();
+    ctx.font = '46px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+    ctx.shadowBlur = 8;
     ctx.fillText('🧺', player.x + player.w / 2, player.y + player.h / 2 + 2);
+    ctx.restore();
 
     // floating "+10" popups
     ctx.font = 'bold 16px sans-serif';
