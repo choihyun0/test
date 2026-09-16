@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>빵 담기</title>
+<style>
+  :root {
+    --bg-top: #fdf6e3;
+    --bg-bottom: #f5e6c8;
+    --panel-bg: #ffffff;
+    --panel-border: #e8d9b5;
+    --text-main: #4a3826;
+    --text-sub: #8a7256;
+    --accent: #d98c3f;
+    --accent-dark: #b56f2a;
+    --danger: #e05a4e;
+    --shadow: rgba(74, 56, 38, 0.15);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg-top: #1f1b16;
+      --bg-bottom: #14110d;
+      --panel-bg: #2a241c;
+      --panel-border: #453b2c;
+      --text-main: #f2e9d8;
+      --text-sub: #baa98c;
+      --accent: #e8a355;
+      --accent-dark: #d98c3f;
+      --danger: #ff7a6b;
+      --shadow: rgba(0, 0, 0, 0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg-top: #1f1b16;
+    --bg-bottom: #14110d;
+    --panel-bg: #2a241c;
+    --panel-border: #453b2c;
+    --text-main: #f2e9d8;
+    --text-sub: #baa98c;
+    --accent: #e8a355;
+    --accent-dark: #d98c3f;
+    --danger: #ff7a6b;
+    --shadow: rgba(0, 0, 0, 0.4);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 12px 40px;
+    overflow-x: hidden;
+  }
+
+  h1 {
+    font-size: clamp(24px, 6vw, 34px);
+    margin: 6px 0 4px;
+    letter-spacing: -0.5px;
+  }
+
+  .subtitle {
+    color: var(--text-sub);
+    font-size: 14px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .stage-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  #gameCanvas {
+    display: block;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    background: var(--panel-bg);
+    border: 3px solid var(--panel-border);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px var(--shadow);
+    touch-action: none;
+  }
+
+  .hud {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    right: 14px;
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    font-size: 15px;
+    pointer-events: none;
+    color: var(--text-main);
+    text-shadow: 0 1px 2px var(--shadow);
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 24px;
+    color: #fff;
+  }
+
+  .overlay h2 {
+    font-size: clamp(20px, 5vw, 26px);
+    margin: 0 0 6px;
+  }
+
+  .overlay p {
+    margin: 0 0 18px;
+    font-size: 14px;
+    opacity: 0.9;
+  }
+
+  button.primary {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    transition: transform 0.1s ease, background 0.2s ease;
+  }
+  button.primary:active { transform: scale(0.96); }
+  button.primary:hover { background: var(--accent-dark); }
+
+  .controls-hint {
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--text-sub);
+    text-align: center;
+    max-width: 380px;
+  }
+
+  .touch-controls {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+    width: 100%;
+    max-width: 420px;
+  }
+  .touch-btn {
+    flex: 1;
+    padding: 16px;
+    border-radius: 12px;
+    border: 2px solid var(--panel-border);
+    background: var(--panel-bg);
+    color: var(--text-main);
+    font-size: 22px;
+    font-weight: 700;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    box-shadow: 0 3px 8px var(--shadow);
+  }
+  .touch-btn:active { background: var(--accent); color: #fff; }
+
+  .best-badge {
+    font-size: 12px;
+    color: var(--text-sub);
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<h1>🧺 빵 담기</h1>
+<p class="subtitle">떨어지는 빵을 바구니로 받아서 최대한 많이 모아보세요!</p>
+
+<div class="stage-wrap">
+  <canvas id="gameCanvas"></canvas>
+  <div class="hud">
+    <span id="scoreLabel">점수: 0</span>
+    <span id="livesLabel">❤️❤️❤️</span>
+  </div>
+  <div class="overlay" id="startOverlay">
+    <h2>🧺 빵 담기</h2>
+    <p>좌우로 움직여서 떨어지는 빵을 바구니로 받으세요.<br>놓친 빵이 3개가 되면 게임이 끝나요. 시간이 지날수록 더 빨리, 더 많이 떨어져요!</p>
+    <button class="primary" id="startBtn">게임 시작</button>
+  </div>
+  <div class="overlay" id="gameOverOverlay" style="display:none;">
+    <h2>빵을 너무 많이 놓쳤어요!</h2>
+    <p id="finalScoreText">점수: 0</p>
+    <div class="best-badge" id="bestScoreText"></div>
+    <button class="primary" id="retryBtn" style="margin-top:14px;">다시 도전</button>
+  </div>
+</div>
+
+<div class="touch-controls">
+  <div class="touch-btn" id="btnLeft">◀</div>
+  <div class="touch-btn" id="btnRight">▶</div>
+</div>
+
+<p class="controls-hint">PC: ← → 방향키 또는 A / D 키&nbsp;&nbsp;|&nbsp;&nbsp;모바일: 화면을 좌우로 드래그하거나 아래 버튼 사용</p>
+
+<script>
+(function () {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const scoreLabel = document.getElementById('scoreLabel');
+  const livesLabel = document.getElementById('livesLabel');
+  const startOverlay = document.getElementById('startOverlay');
+  const gameOverOverlay = document.getElementById('gameOverOverlay');
+  const finalScoreText = document.getElementById('finalScoreText');
+  const bestScoreText = document.getElementById('bestScoreText');
+  const startBtn = document.getElementById('startBtn');
+  const retryBtn = document.getElementById('retryBtn');
+  const btnLeft = document.getElementById('btnLeft');
+  const btnRight = document.getElementById('btnRight');
+
+  // Internal fixed resolution for crisp drawing regardless of CSS size
+  const W = 360, H = 480;
+  canvas.width = W;
+  canvas.height = H;
+
+  let bestScore = 0;
+  try {
+    const saved = localStorage.getItem('breadCatchBest');
+    if (saved) bestScore = parseInt(saved, 10) || 0;
+  } catch (e) { /* storage unavailable, ignore */ }
+
+  const MAX_LIVES = 3;
+  let player, breads, score, caught, missed, lives, elapsed, spawnTimer, spawnInterval, fallSpeedBase, running, animId, popups;
+  let keys = { left: false, right: false };
+  let dragging = false, lastDragX = 0;
+
+  function resetState() {
+    player = { x: W / 2 - 26, y: H - 56, w: 52, h: 34, speed: 5.5 };
+    breads = [];
+    popups = [];
+    score = 0;
+    caught = 0;
+    missed = 0;
+    lives = MAX_LIVES;
+    elapsed = 0;
+    spawnTimer = 0;
+    spawnInterval = 60; // frames
+    fallSpeedBase = 2.0;
+    running = false;
+  }
+
+  resetState();
+
+  function currentLevel() {
+    return 1 + Math.floor(caught / 8);
+  }
+
+  function updateLivesLabel() {
+    livesLabel.textContent = '❤️'.repeat(Math.max(0, lives)) + '🖤'.repeat(MAX_LIVES - Math.max(0, lives));
+  }
+
+  function spawnBread() {
+    const size = 26 + Math.random() * 10;
+    const x = Math.random() * (W - size);
+    const speed = fallSpeedBase + Math.random() * 1.5 + currentLevel() * 0.35;
+    breads.push({ x, y: -size, size, speed, rot: Math.random() * Math.PI, rotSpeed: (Math.random() - 0.5) * 0.1 });
+  }
+
+  function rectsOverlap(a, b) {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  function update() {
+    elapsed++;
+
+    // player movement
+    if (keys.left) player.x -= player.speed;
+    if (keys.right) player.x += player.speed;
+    player.x = Math.max(0, Math.min(W - player.w, player.x));
+
+    // spawn logic — ramps up as you catch more
+    spawnInterval = Math.max(20, 60 - currentLevel() * 4);
+    spawnTimer++;
+    if (spawnTimer >= spawnInterval) {
+      spawnTimer = 0;
+      spawnBread();
+      if (currentLevel() >= 4 && Math.random() < 0.25) spawnBread();
+    }
+
+    // update breads: catch, miss, or keep falling
+    for (let i = breads.length - 1; i >= 0; i--) {
+      const b = breads[i];
+      b.y += b.speed;
+      b.rot += b.rotSpeed;
+      const bbox = { x: b.x, y: b.y, w: b.size, h: b.size };
+      const pbox = { x: player.x + 4, y: player.y, w: player.w - 8, h: player.h - 6 };
+
+      if (rectsOverlap(bbox, pbox)) {
+        // caught!
+        breads.splice(i, 1);
+        caught++;
+        score += 10;
+        popups.push({ x: b.x + b.size / 2, y: b.y, text: '+10', life: 30 });
+        continue;
+      }
+
+      if (b.y > H) {
+        // missed — falls past the basket
+        breads.splice(i, 1);
+        missed++;
+        lives--;
+        updateLivesLabel();
+        if (lives <= 0) {
+          endGame();
+          return;
+        }
+      }
+    }
+
+    // update floating score popups
+    for (let i = popups.length - 1; i >= 0; i--) {
+      popups[i].y -= 0.6;
+      popups[i].life--;
+      if (popups[i].life <= 0) popups.splice(i, 1);
+    }
+
+    scoreLabel.textContent = '점수: ' + score;
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // floor line
+    ctx.fillStyle = 'rgba(120,90,50,0.08)';
+    ctx.fillRect(0, H - 20, W, 20);
+
+    // breads
+    breads.forEach(b => {
+      ctx.save();
+      ctx.translate(b.x + b.size / 2, b.y + b.size / 2);
+      ctx.rotate(b.rot);
+      ctx.font = b.size + 'px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🍞', 0, 0);
+      ctx.restore();
+    });
+
+    // player (basket)
+    ctx.font = '46px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🧺', player.x + player.w / 2, player.y + player.h / 2 + 2);
+
+    // floating "+10" popups
+    ctx.font = 'bold 16px sans-serif';
+    ctx.fillStyle = '#4caf50';
+    popups.forEach(p => {
+      ctx.globalAlpha = Math.max(0, p.life / 30);
+      ctx.fillText(p.text, p.x, p.y);
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  function loop() {
+    if (!running) return;
+    update();
+    if (!running) return; // update() may have ended the game
+    draw();
+    animId = requestAnimationFrame(loop);
+  }
+
+  function startGame() {
+    resetState();
+    running = true;
+    updateLivesLabel();
+    scoreLabel.textContent = '점수: 0';
+    startOverlay.style.display = 'none';
+    gameOverOverlay.style.display = 'none';
+    animId = requestAnimationFrame(loop);
+  }
+
+  function endGame() {
+    running = false;
+    cancelAnimationFrame(animId);
+    if (score > bestScore) {
+      bestScore = score;
+      try { localStorage.setItem('breadCatchBest', String(bestScore)); } catch (e) {}
+    }
+    finalScoreText.textContent = '점수: ' + score + ' (빵 ' + caught + '개 담음)';
+    bestScoreText.textContent = '최고 점수: ' + bestScore;
+    gameOverOverlay.style.display = 'flex';
+    draw();
+  }
+
+  // keyboard controls
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+  });
+  window.addEventListener('keyup', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+  });
+
+  // touch buttons
+  function bindHold(el, onDown, onUp) {
+    el.addEventListener('mousedown', onDown);
+    el.addEventListener('mouseup', onUp);
+    el.addEventListener('mouseleave', onUp);
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); onDown(); }, { passive: false });
+    el.addEventListener('touchend', (e) => { e.preventDefault(); onUp(); }, { passive: false });
+  }
+  bindHold(btnLeft, () => keys.left = true, () => keys.left = false);
+  bindHold(btnRight, () => keys.right = true, () => keys.right = false);
+
+  // drag on canvas
+  canvas.addEventListener('touchstart', (e) => {
+    dragging = true;
+    lastDragX = e.touches[0].clientX;
+  }, { passive: true });
+  canvas.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    const x = e.touches[0].clientX;
+    const dx = x - lastDragX;
+    lastDragX = x;
+    const scale = W / canvas.getBoundingClientRect().width;
+    player.x += dx * scale;
+    player.x = Math.max(0, Math.min(W - player.w, player.x));
+  }, { passive: true });
+  canvas.addEventListener('touchend', () => dragging = false);
+
+  startBtn.addEventListener('click', startGame);
+  retryBtn.addEventListener('click', startGame);
+
+  updateLivesLabel();
+  draw(); // initial frame
+})();
+</script>
+</body>
+</html>
